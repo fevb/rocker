@@ -31,7 +31,7 @@ install_requires.append(docker_package)
 
 kwargs = {
     'name': 'rocker',
-    'version': '0.2.0',
+    'version': '0.2.2',
     'packages': ['rocker'],
     'package_dir': {'': 'src'},
     'package_data': {'rocker': ['templates/*.em']},
@@ -47,6 +47,7 @@ kwargs = {
             'git = rocker.git_extension:Git',
             'home = rocker.extensions:HomeDir',
             'mount = rocker.mount_extension:Mount',
+            'name = rocker.extensions:Name',
             'network = rocker.extensions:Network',
             'nvidia = rocker.nvidia_extension:Nvidia',
             'privileged = rocker.extensions:Privileged',
