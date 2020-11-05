@@ -58,7 +58,7 @@ def detect_os(image_name, output_callback=None):
             output_callback('Failed to build detector image')
         return None
 
-    cmd="docker run -it --rm %s" % image_id
+    cmd="docker run -it --rm -u root %s" % image_id
     if output_callback:
         output_callback("running, ", cmd)
     p = pexpect.spawn(cmd)
