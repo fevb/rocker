@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import argparse
 import grp
 import os
 import docker
@@ -56,7 +57,7 @@ class Devices(RockerExtension):
     @staticmethod
     def register_arguments(parser, defaults={}):
         parser.add_argument('--devices',
-            default=defaults.get('devices', None),
+            default=defaults.get('devices', argparse.SUPPRESS),
             nargs='*',
             help="Mount devices into the container.")
 
@@ -87,7 +88,7 @@ class DevHelpers(RockerExtension):
     def register_arguments(parser, defaults={}):
         parser.add_argument(name_to_argument(DevHelpers.get_name()),
             action='store_true',
-            default=defaults.get('dev_helpers', None),
+            default=defaults.get('dev_helpers', argparse.SUPPRESS),
             help="add development tools emacs and byobu to your environment")
 
 
@@ -111,7 +112,7 @@ class Name(RockerExtension):
 
     @staticmethod
     def register_arguments(parser, defaults={}):
-        parser.add_argument('--name', default='',
+        parser.add_argument('--name', default=argparse.SUPPRESS,
                             help='Name of the container.')
 
 
@@ -135,8 +136,8 @@ class Network(RockerExtension):
     @staticmethod
     def register_arguments(parser, defaults={}):
         client = get_docker_client()
-        parser.add_argument('--network', choices=[n['Name'] for n in client.networks()],
-            default=defaults.get('network', None),
+        parser.add_argument('--network',
+            default=defaults.get('network', argparse.SUPPRESS),
             help="What network configuration to use.")
 
 class PulseAudio(RockerExtension):
@@ -173,7 +174,7 @@ class PulseAudio(RockerExtension):
     def register_arguments(parser, defaults={}):
         parser.add_argument(name_to_argument(PulseAudio.get_name()),
             action='store_true',
-            default=defaults.get(PulseAudio.get_name(), None),
+            default=defaults.get(PulseAudio.get_name(), argparse.SUPPRESS),
             help="mount pulse audio devices")
 
 
@@ -192,7 +193,7 @@ class HomeDir(RockerExtension):
     def register_arguments(parser, defaults={}):
         parser.add_argument(name_to_argument(HomeDir.get_name()),
             action='store_true',
-            default=defaults.get(HomeDir.get_name(), None),
+            default=defaults.get(HomeDir.get_name(), argparse.SUPPRESS),
             help="mount the users home directory")
 
 
@@ -201,10 +202,17 @@ class User(RockerExtension):
     def get_name():
         return 'user'
 
-    def get_environment_subs(self):
+    def get_environment_subs(self, cliargs):
         if not self._env_subs:
+            user = cliargs.get('user')
+            if type(user) is str:
+                try:
+                    userinfo = pwd.getpwuid(int(user))
+                except ValueError:
+                    userinfo = pwd.getpwnam(user)
+            else:
+                userinfo = pwd.getpwuid(os.getuid())
             user_vars = ['name', 'uid', 'gid', 'gecos','dir', 'shell']
-            userinfo = pwd.getpwuid(os.getuid())
             self._env_subs = {
                 k: getattr(userinfo, 'pw_' + k)
                 for k in user_vars }
@@ -216,15 +224,15 @@ class User(RockerExtension):
 
     def get_snippet(self, cliargs):
         snippet = pkgutil.get_data('rocker', 'templates/%s_snippet.Dockerfile.em' % self.name).decode('utf-8')
-        substitutions = self.get_environment_subs()
+        substitutions = self.get_environment_subs(cliargs)
         substitutions['home_extension_active'] = True if 'home' in cliargs and cliargs['home'] else False
         return em.expand(snippet, substitutions)
 
     @staticmethod
     def register_arguments(parser, defaults={}):
         parser.add_argument(name_to_argument(User.get_name()),
-            action='store_true',
-            default=defaults.get('user', None),
+            nargs='?', const=True,
+            default=defaults.get('user', argparse.SUPPRESS),
             help="mount the current user's id and run as that user")
 
 
@@ -261,18 +269,19 @@ class Environment(RockerExtension):
             type=str,
             nargs='+',
             action='append',
-            default=defaults.get(Environment.get_name(), []),
+            default=defaults.get('env', argparse.SUPPRESS),
             help='set environment variables')
         parser.add_argument('--env-file',
             type=str,
             nargs=1,
             action='append',
+            default=defaults.get('env_file', argparse.SUPPRESS),
             help='set environment variable via env-file')
 
     @classmethod
     def check_args_for_activation(cls, cli_args):
         """ Returns true if the arguments indicate that this extension should be activated otherwise false."""
-        return True if cli_args.get('env') or cli_args.get('env_file') else False
+        return cli_args.get('env') or cli_args.get('env_file')
 
 class Privileged(RockerExtension):
     @staticmethod
@@ -292,5 +301,5 @@ class Privileged(RockerExtension):
     def register_arguments(parser, defaults={}):
         parser.add_argument('--privileged',
             action='store_true',
-            default=defaults.get('privileged', False),
+            default=defaults.get('privileged', argparse.SUPPRESS),
             help="Give extended privileges to this container")

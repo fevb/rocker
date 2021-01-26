@@ -36,7 +36,7 @@ def main():
     parser.add_argument('--noexecute', action='store_true', help='Deprecated')
     parser.add_argument('--nocache', action='store_true')
     parser.add_argument('--pull', action='store_true')
-    parser.add_argument('-v', '--version', action='version',
+    parser.add_argument('--version', action='version',
         version='%(prog)s ' + get_rocker_version())
 
     try:
@@ -47,7 +47,7 @@ def main():
         # Catch errors if docker is missing or inaccessible.
         parser.error("DependencyMissing encountered: %s" % ex)
 
-    args = parser.parse_args()
+    args, unknown_args = parser.parse_known_args()
     args_dict = vars(args)
 
     if args.noexecute:
@@ -69,7 +69,7 @@ def main():
         return exit_code
     # Convert command into string
     args.command = ' '.join(args.command)
-    return dig.run(**args_dict)
+    return dig.run(**args_dict, unknown_args=unknown_args)
 
 
 def detect_image_os():

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import argparse
 from argparse import ArgumentTypeError
 import os
 from rocker.extensions import RockerExtension
@@ -40,11 +41,38 @@ class Mount(RockerExtension):
     def get_docker_args(self, cli_args):
         args = ['']
 
+        volumes = cli_args.get('volume') or []
+        mounts = cli_args.get('mount') or []
         # flatten cli_args['mount']
-        mounts = [ x for sublist in cli_args['mount'] for x in sublist]
+        if mounts:
+            mounts = [ x for sublist in cli_args['mount'] for x in sublist]
 
+        # for backwards compatibility:
+        #  - interpret --mount arguments without commas with colons like --volume
+        #  - interpret --mount arguments without commas and without colons as a single host folder
+        #    (absolute or relative to the current working directory) that will be mounted
+        #    under the same name in the container
+        temp = []
         for mount in mounts:
-            elems = mount.split(':')
+            elems = mount.split(',')
+            if len(elems) == 1:
+                if ':' in elems[0]:
+                    volumes.append(elems)
+                else:
+                    host_dir = os.path.abspath(elems[0])
+                    args.append('-v {0}:{0}'.format(host_dir))
+            else:
+                temp.append(mount)
+        mounts = temp
+
+        # --mount arguments are forwarded as-is.
+        for mount in mounts:
+            args.append('--mount {0}'.format(mount))
+
+        # --volumes/-v are eventually resolved relative to the current working directory, but otherwise
+        # forwarded as-us.
+        for volume in volumes:
+            elems = volume.split(':')
             host_dir = os.path.abspath(elems[0])
             if len(elems) == 1:
                 args.append('-v {0}:{0}'.format(host_dir))
@@ -56,16 +84,27 @@ class Mount(RockerExtension):
                 options = elems[2]
                 args.append('-v {0}:{1}:{2}'.format(host_dir, container_dir, options))
             else:
-                raise ArgumentTypeError('--mount expects arguments in format HOST-DIR[:CONTAINER-DIR[:OPTIONS]]')
+                raise ArgumentTypeError('--volume expects arguments in format HOST-DIR[:CONTAINER-DIR[:OPTIONS]]')
 
         return ' '.join(args)
 
     @staticmethod
     def register_arguments(parser, defaults={}):
-        parser.add_argument('--mount',
+        parser.add_argument('-v', '--volume',
             metavar='HOST-DIR[:CONTAINER-DIR[:OPTIONS]]',
+            type=str,
+            action='append',
+            default=defaults.get('volume', argparse.SUPPRESS),
+            help='mount volumes in container (equivalent to docker run -v)')
+        parser.add_argument('--mount',
+            metavar='<key>=<value>[,<key>=<value>[,...]]',
             type=str,
             nargs='+',
             action='append',
-            default=defaults.get('mount', []),
-            help='mount volumes in container')
+            default=defaults.get('mount', argparse.SUPPRESS),
+            help='mount volumes in container (equivalent to docker run --mount)')
+
+    @classmethod
+    def check_args_for_activation(cls, cli_args):
+        """ Returns true if the arguments indicate that this extension should be activated otherwise false."""
+        return cli_args.get('volume') or cli_args.get('mount')

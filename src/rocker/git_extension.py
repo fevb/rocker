@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from argparse import ArgumentTypeError
+import argparse
 import os
 from rocker.extensions import RockerExtension
 
@@ -57,5 +57,5 @@ class Git(RockerExtension):
     def register_arguments(parser, defaults={}):
         parser.add_argument('--git',
             action='store_true',
-            default=defaults.get(Git.get_name(), None),
+            default=defaults.get(Git.get_name(), argparse.SUPPRESS),
             help="Use the global Git settings from the host (/etc/gitconfig and ~/.gitconfig)")

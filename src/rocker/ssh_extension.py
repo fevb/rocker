@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from argparse import ArgumentTypeError
+import argparse
 import os
 import shlex
 
@@ -49,5 +49,5 @@ class Ssh(RockerExtension):
     def register_arguments(parser, defaults={}):
         parser.add_argument('--ssh',
             action='store_true',
-            default=defaults.get(Ssh.get_name(), None),
+            default=defaults.get(Ssh.get_name(), argparse.SUPPRESS),
             help="Forward SSH agent into the container")

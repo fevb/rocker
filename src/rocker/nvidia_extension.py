@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import argparse
 import grp
 import os
 import em
@@ -72,7 +73,7 @@ class X11(RockerExtension):
     def register_arguments(parser, defaults={}):
         parser.add_argument(name_to_argument(X11.get_name()),
             action='store_true',
-            default=defaults.get(X11.get_name(), None),
+            default=defaults.get(X11.get_name(), argparse.SUPPRESS),
             help="Enable x11")
 
 
@@ -130,7 +131,7 @@ class Nvidia(RockerExtension):
     def register_arguments(parser, defaults={}):
         parser.add_argument(name_to_argument(Nvidia.get_name()),
             action='store_true',
-            default=defaults.get(Nvidia.get_name(), None),
+            default=defaults.get(Nvidia.get_name(), argparse.SUPPRESS),
             help="Enable nvidia")
 
 

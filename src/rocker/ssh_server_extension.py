@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import argparse
 import em
 import pkgutil
 
@@ -40,5 +41,5 @@ class SshServer(RockerExtension):
     def register_arguments(parser, defaults={}):
         parser.add_argument(name_to_argument(SshServer.get_name()),
             action='store_true',
-            default=defaults.get(SshServer.get_name(), False),
+            default=defaults.get(SshServer.get_name(), argparse.SUPPRESS),
             help="Installs and configures an SSH server inside the container")

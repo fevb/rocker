@@ -82,7 +82,7 @@ class RockerExtension(object):
         """ Returns true if the arguments indicate that this extension should be activated otherwise false.
         The default implementation looks for the extension name has any value.
         It is recommended to override this unless it's just a flag to enable the plugin."""
-        return True if cli_args.get(cls.get_name()) else False
+        return cli_args.get(cls.get_name()) is not None
 
     @staticmethod
     def register_arguments(parser, defaults={}):
@@ -239,7 +239,7 @@ class DockerImageGenerator(object):
                 print("Docker build failed\n", ex)
                 return 1
 
-    def run(self, command='', **kwargs):
+    def run(self, command='', unknown_args=[], **kwargs):
         if not self.built:
             print("Cannot run if build has not passed.")
             return 1
@@ -254,6 +254,8 @@ class DockerImageGenerator(object):
 
         for e in self.active_extensions:
             docker_args += e.get_docker_args(self.cliargs)
+        #docker_args += shlex.join(unknown_args)
+        docker_args += ' '.join([shlex.quote(arg) for arg in unknown_args])
 
         image = self.image_id
         operating_mode = kwargs.get('mode')
