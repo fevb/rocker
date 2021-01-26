@@ -239,7 +239,7 @@ class DockerImageGenerator(object):
                 print("Docker build failed\n", ex)
                 return 1
 
-    def run(self, command='', unknown_args=[], **kwargs):
+    def run(self, command='', additional_args=[], **kwargs):
         if not self.built:
             print("Cannot run if build has not passed.")
             return 1
@@ -254,8 +254,9 @@ class DockerImageGenerator(object):
 
         for e in self.active_extensions:
             docker_args += e.get_docker_args(self.cliargs)
-        #docker_args += shlex.join(unknown_args)
-        docker_args += ' '.join([shlex.quote(arg) for arg in unknown_args])
+        if additional_args:
+            #docker_args += ' ' + shlex.join(additional_args)
+            docker_args += ' ' + ' '.join([shlex.quote(arg) for arg in additional_args])
 
         image = self.image_id
         operating_mode = kwargs.get('mode')

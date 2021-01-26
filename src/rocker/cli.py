@@ -30,7 +30,8 @@ def main():
 
     parser = argparse.ArgumentParser(
         description='A tool for running docker with extra options',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        usage='%(prog)s [rocker arguments] [-- [docker run arguments]] -- image [command [command ...]]')
     parser.add_argument('image')
     parser.add_argument('command', nargs='*', default='')
     parser.add_argument('--noexecute', action='store_true', help='Deprecated')
@@ -47,7 +48,29 @@ def main():
         # Catch errors if docker is missing or inaccessible.
         parser.error("DependencyMissing encountered: %s" % ex)
 
-    args, unknown_args = parser.parse_known_args()
+    # Split the command line arguments at -- to separate rocker arguments
+    # from docker run arguments and from the image with commands (positional rocker arguments)
+    rocker_args = []
+    docker_run_args = []
+    split_argv = [[]]
+    for arg in sys.argv[1:]:
+        if arg != '--':
+            split_argv[-1].append(arg)
+        else:
+            split_argv.append([])
+    if len(split_argv) == 1:
+        rocker_args = split_argv[0]
+        docker_run_args = []
+    elif len(split_argv) == 2:
+        rocker_args = split_argv[0] + ['--'] + split_argv[1]
+        docker_run_args = []
+    elif len(split_argv) == 3:
+        rocker_args = split_argv[0] + ['--'] + split_argv[2]
+        docker_run_args = split_argv[1]
+    else:
+        parser.error("More than two -- arguments are not supported.")
+
+    args = parser.parse_args(rocker_args)
     args_dict = vars(args)
 
     if args.noexecute:
@@ -69,7 +92,7 @@ def main():
         return exit_code
     # Convert command into string
     args.command = ' '.join(args.command)
-    return dig.run(**args_dict, unknown_args=unknown_args)
+    return dig.run(**args_dict, additional_args=docker_run_args)
 
 
 def detect_image_os():
