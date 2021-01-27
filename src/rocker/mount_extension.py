@@ -57,7 +57,7 @@ class Mount(RockerExtension):
             elems = mount.split(',')
             if len(elems) == 1:
                 if ':' in elems[0]:
-                    volumes.append(elems)
+                    volumes.append(elems[0])
                 else:
                     host_dir = os.path.abspath(elems[0])
                     args.append('-v {0}:{0}'.format(host_dir))
